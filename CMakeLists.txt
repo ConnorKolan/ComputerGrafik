@@ -6,7 +6,7 @@ add_executable(ImGui src/main.cpp src/glad.c
         include/stb_images.h)
 
 find_library(GLFW_LIB glfw3 PATH ${CMAKE_SOURCE_DIR}/GLFW)
-target_link_libraries(ImGui ${GLFW_LIB})
+target_link_libraries(ImGui ${CMAKE_SOURCE_DIR}/libs/libglfw3.a)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
