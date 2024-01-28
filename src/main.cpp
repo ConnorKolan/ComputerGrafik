@@ -79,9 +79,7 @@ int main(int, char**){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-
-    unsigned char* data = stbi_load("resources/shaders/Textures/container.jpg", &width, &height, &nrChannels, 0);
-
+    unsigned char* data = stbi_load("../resources/shaders/Textures/container.jpg", &width, &height, &nrChannels, 0);
 
     if(data){
         glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -104,7 +102,7 @@ int main(int, char**){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load image, create texture and generate mipmaps
     stbi_set_flip_vertically_on_load(true);
-    data = stbi_load("resources/shaders/Textures/awesomeface.png", &width, &height, &nrChannels, 0);
+    data = stbi_load("../resources/shaders/Textures/awesomeface.png", &width, &height, &nrChannels, 0);
     stbi_set_flip_vertically_on_load(false);
     if (data)
     {
@@ -131,7 +129,7 @@ int main(int, char**){
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    Shader myShaders("resources/shaders/Shaders/shader.vs", "resources/shaders/Shaders/shader.fs");
+    Shader myShaders("../resources/shaders/Shaders/shader.vs", "../resources/shaders/Shaders/shader.fs");
     myShaders.use();
 
     myShaders.setInt("texture1", 0);
