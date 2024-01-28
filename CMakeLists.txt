@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.0.0)
+project(ImGui VERSION 0.1.0 LANGUAGES C CXX)
+
+add_executable(ImGui src/main.cpp src/glad.c
+        include/Shader.h
+        include/stb_images.h)
+
+find_library(GLFW_LIB glfw3 PATH ${CMAKE_SOURCE_DIR}/GLFW)
+target_link_libraries(ImGui ${GLFW_LIB})
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+target_include_directories(ImGui PUBLIC imgui-master include/GLFW/include)
