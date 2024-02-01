@@ -158,7 +158,7 @@ int main(int, char**){
     //--------------------------------------------------------------------------------------------------------
 
     //coordinates of the triangle
-    float vertices[] = {
+    float Cube[] = {
     // positions          // texture1 coords
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
      0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -214,7 +214,7 @@ int main(int, char**){
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);  //bind this object to make it current
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); //copy data from array to buffer
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Cube), Cube, GL_STATIC_DRAW); //copy data from array to buffer
 
     //now tell opengl how to interpret the data from the vertices array
     //first the vertecies themselfs
