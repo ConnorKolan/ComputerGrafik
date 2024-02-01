@@ -3,7 +3,7 @@
 #include "GLFW/glfw3.h"
 #include "Shader.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_images.h"
+#include "stb_image.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -81,10 +81,12 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
         fov = 90.0f; 
 }
 
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    float cameraSpeed = static_cast<float>(2.5 * deltaTime);    
-    if (glfwGetKey(window, GLFW_KEY_K == GLFW_PRESS))
-        std::cout << "Test" << std::endl;
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    float cameraSpeed = static_cast<float>(2.5 * deltaTime);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -144,7 +146,6 @@ int main(int, char**){
     }
     glfwMakeContextCurrent(window);
     glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetKeyCallback(window, keyCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetScrollCallback(window, scroll_callback); 
 
@@ -271,9 +272,7 @@ int main(int, char**){
     glm::vec3 camRight = glm::normalize(glm::cross(up, camDirection));
     glm::vec3 camUp = glm::cross(camDirection, camRight);
 
-    view = glm::lookAt( glm::vec3(0.0f, 0.0f, 3.0f),
-                        glm::vec3(0.0f, 0.0f, 0.0f),
-                        glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
     for (int i = 0; i < 4 ; i++){
         std::cout << view[i].x << view[i].y << view[i].z << view[i].w << std::endl;
@@ -284,6 +283,8 @@ int main(int, char**){
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+        processInput(window);
 
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         projection = glm::perspective(glm::radians(fov), 800.0f / 800.0f, 0.1f, 100.0f);  
