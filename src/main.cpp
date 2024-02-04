@@ -180,6 +180,7 @@ int main(int, char**){
     cubeShader.setInt("texture2", 1);
     cubeShader.setVec3("lightColor", lightColor);
     cubeShader.setVec3("lightPos", lightPos);
+    cubeShader.setVec3("viewPos", cameraPos);
 
     
     while (!glfwWindowShouldClose(window)){
@@ -202,6 +203,7 @@ int main(int, char**){
         lightShader.use();
         lightShader.setMat4("view", view);
         lightShader.setMat4("projection", projection);
+
         glBindVertexArray(lightVAO);
 
         model = glm::mat4(1.0f);
@@ -226,12 +228,14 @@ int main(int, char**){
 
         glBindVertexArray(vao);
 
-        for(unsigned int i = 0; i < 10; i++)
+        for(unsigned int i = 0; i < 1; i++)
         {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i; 
-
+            float angle = 0.0f * i; 
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            //model = glm::rotate(model, glm::radians((float) (3.0f * glfwGetTime())) , glm::vec3(1.0f, 0.0f, 0.0f));
+            //model = glm::translate(model, glm::vec3((float) glfwGetTime(), 0.0f, 0.0f));
             cubeShader.setMat4("model", model);
 
             glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -293,7 +297,7 @@ void processInput(GLFWwindow *window){
 
     float cameraSpeed = static_cast<float>(2.5 * deltaTime);
     if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        cameraSpeed *= 2;
+        cameraSpeed *= 4;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
