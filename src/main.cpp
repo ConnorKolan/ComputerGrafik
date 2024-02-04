@@ -231,8 +231,6 @@ int main(int, char**){
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
             float angle = 20.0f * i; 
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            model = glm::rotate(model, glm::radians((float) glfwGetTime()) , glm::vec3(1.0f, 0.0f, 0.0f));
 
             cubeShader.setMat4("model", model);
 
@@ -304,6 +302,11 @@ void processInput(GLFWwindow *window){
         cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        cameraPos -= cameraSpeed *  cameraUp;
+    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        cameraPos += cameraSpeed *  cameraUp;
+    
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
