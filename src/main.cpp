@@ -17,14 +17,14 @@ glm::vec3 lightPos    = glm::vec3(1.2f, 1.0f, 2.0f);
 glm::vec3 lightColor  = glm::vec3(1.0f, 1.0f, 1.0f);
 
 bool firstMouse = true;
-float yaw   = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float yaw   = -90.0f;
 float pitch =  0.0f;
 float lastX =  800.0f / 2.0;
 float lastY =  600.0 / 2.0;
 float fov = 45.0f;
 
-float deltaTime = 0.0f;	// Time between current frame and last frame
-float lastFrame = 0.0f; // Time of last frame
+float deltaTime = 0.0f;
+float lastFrame = 0.0f; 
 
 void loadAndBindTextures(unsigned int *texture1, unsigned int *texture2);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -61,7 +61,6 @@ int main(int, char**){
 
     Shader cubeShader("../resources/shaders/Shaders/Cube/Cube.vs", "../resources/shaders/Shaders/Cube/Cube.fs");
     Shader lightShader("../resources/shaders/Shaders/Lamp/Lamp.vs", "../resources/shaders/Shaders/Lamp/Lamp.fs");
-
 
     //coordinates of the triangle
     float cube[] = {
@@ -108,22 +107,17 @@ int main(int, char**){
     -0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,       0.0f, 0.0f, 
     -0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,       0.0f, 1.0f,
 };                      
-
-    //create buffer     
+   
     unsigned int cubeVBO;       
     unsigned int vao;       
 
-    //generate buffer object
     glGenBuffers(1, &cubeVBO);
     glGenVertexArrays(1, &vao);
 
     glBindVertexArray(vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);  //bind this object to make it current
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);  
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
-
-    //now tell opengl how to interpret the data from the vertices array
-    //first the vertecies themselfs
     
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) nullptr);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (3 * sizeof(float)));
@@ -131,7 +125,6 @@ int main(int, char**){
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    
 
 
     unsigned int lightVAO;
@@ -151,17 +144,16 @@ int main(int, char**){
 
     glViewport(0, 0, 800, 800);
     glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-    glEnable(GL_DEPTH_TEST); 
+    glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT);
 
 
-
     glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f), 
-        glm::vec3( 2.0f,  5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-3.8f, -2.0f, -12.3f),  
-        glm::vec3( 2.4f, -0.4f, -3.5f),  
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f), 
+        glm::vec3(-3.8f, -2.0f, -12.3f), 
+        glm::vec3( 2.4f, -0.4f, -3.5f), 
         glm::vec3(-1.7f,  3.0f, -7.5f),  
         glm::vec3( 1.3f, -2.0f, -2.5f),  
         glm::vec3( 1.5f,  2.0f, -2.5f), 
@@ -228,14 +220,16 @@ int main(int, char**){
 
         glBindVertexArray(vao);
 
-        for(unsigned int i = 0; i < 1; i++)
+        for(unsigned int i = 0; i < 5; i++)
         {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
             float angle = 0.0f * i; 
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            //model = glm::rotate(model, glm::radians((float) (3.0f * glfwGetTime())) , glm::vec3(1.0f, 0.0f, 0.0f));
-            //model = glm::translate(model, glm::vec3((float) glfwGetTime(), 0.0f, 0.0f));
+            model = glm::rotate(model, glm::radians((float) (20.0f * glfwGetTime())) , glm::vec3(1.0f, 0.0f, 0.0f));
+            //model = glm::translate(model, glm::vec3((float) glfwGetTime()/2.0f, 0.0f, 0.0f));
+            glm::vec3 test = glm::normalize(glm::vec3(model * glm::vec4(glm::vec3( 0.0f,  0.0f, -1.0f), 1.0)));
+
             cubeShader.setMat4("model", model);
 
             glDrawArrays(GL_TRIANGLES, 0, 36);
