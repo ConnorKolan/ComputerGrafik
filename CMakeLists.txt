@@ -7,6 +7,7 @@ add_executable(Monopoly src/main.cpp src/glad.c
 
 find_library(GLFW_LIB glfw3 PATH ${CMAKE_SOURCE_DIR}/GLFW)
 target_link_libraries(Monopoly ${CMAKE_SOURCE_DIR}/libs/libglfw3.a)
+target_link_libraries(Monopoly ${CMAKE_SOURCE_DIR}/libs/libassimp.dll.a)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
