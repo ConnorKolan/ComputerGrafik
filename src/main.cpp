@@ -21,10 +21,15 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(1.55f, 1.4f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+
+
+glm::vec3 lightPos    = glm::vec3(1.55f, 5.4f, 1.3f);
+glm::vec3 lightPos2    = glm::vec3(1.55f, 1.4f, 1.0f);
+glm::vec3 lightColor  = glm::vec3(1.0f, 1.0f, 1.0f);
 
 // timing
 float deltaTime = 0.0f;
@@ -78,8 +83,70 @@ int main()
     // build and compile shaders
     // -------------------------
     Shader ourShader("../resources/shaders/Shaders/Model/model.vs", "../resources/shaders/Shaders/Model/model.fs");
+    Shader lightShader("../resources/shaders/Shaders/Lamp/Lamp.vs", "../resources/shaders/Shaders/Lamp/Lamp.fs");
 
+
+    float cube[] = {
+        // positions                vertex normals            texture
+        -0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       0.0f, 0.0f, 
+        0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       1.0f, 0.0f, 
+        0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       1.0f, 1.0f, 
+        0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       1.0f, 1.0f, 
+        -0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       0.0f, 1.0f, 
+        -0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       0.0f, 0.0f,  
+
+        -0.5f, -0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        0.0f, 0.0f,
+        0.5f, -0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f,        -1.0f,  0.0f,  0.0f,      1.0f, 0.0f, 
+        -0.5f,  0.5f, -0.5f,        -1.0f,  0.0f,  0.0f,      1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,        -1.0f,  0.0f,  0.0f,      0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,        -1.0f,  0.0f,  0.0f,      0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,        -1.0f,  0.0f,  0.0f,      0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,        -1.0f,  0.0f,  0.0f,      1.0f, 0.0f,
+
+        0.5f,  0.5f,  0.5f,        1.0f,  0.0f,  0.0f,       1.0f, 0.0f, 
+        0.5f,  0.5f, -0.5f,        1.0f,  0.0f,  0.0f,       1.0f, 1.0f, 
+        0.5f, -0.5f, -0.5f,        1.0f,  0.0f,  0.0f,       0.0f, 1.0f, 
+        0.5f, -0.5f, -0.5f,        1.0f,  0.0f,  0.0f,       0.0f, 1.0f, 
+        0.5f, -0.5f,  0.5f,        1.0f,  0.0f,  0.0f,       0.0f, 0.0f, 
+        0.5f,  0.5f,  0.5f,        1.0f,  0.0f,  0.0f,       1.0f, 0.0f, 
+
+        -0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,       0.0f, 1.0f, 
+        0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,       1.0f, 1.0f, 
+        0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,       1.0f, 0.0f, 
+        0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,       1.0f, 0.0f, 
+        -0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,       0.0f, 0.0f, 
+        -0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,       0.0f, 1.0f, 
+
+        -0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,       0.0f, 1.0f, 
+        0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,       1.0f, 1.0f, 
+        0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,       1.0f, 0.0f, 
+        0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,       1.0f, 0.0f, 
+        -0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,       0.0f, 0.0f, 
+        -0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,       0.0f, 1.0f,
+    };  
+
+   
+    unsigned int cubeVBO;       
+    glGenBuffers(1, &cubeVBO);
+    unsigned int lightVAO;
+    glGenVertexArrays(1, &lightVAO);
+    glBindVertexArray(lightVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) nullptr);
+    glEnableVertexAttribArray(0);
     // load models
+
+
+
     // -----------
     Model ourModel("../resources/objects/test/Test2.obj");
     //Model ourModel("../resources/objects/test/Test.obj");
@@ -88,6 +155,11 @@ int main()
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // render loop
+    ourShader.use();
+    ourShader.setVec3("lightColor", lightColor);
+    ourShader.setVec3("lightPos", lightPos);
+    ourShader.setVec3("lightPos2", lightPos);
+
     // -----------
     while (!glfwWindowShouldClose(window))
     {
@@ -106,14 +178,18 @@ int main()
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
         // don't forget to enable shader before setting uniforms
         ourShader.use();
 
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
+        ourShader.setVec3("viewPos", camera.Position);
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
+
+
 
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
