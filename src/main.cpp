@@ -5,9 +5,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <learnopengl/shader_m.h>
-#include <learnopengl/camera.h>
-#include <learnopengl/model.h>
+#include <shader.h>
+#include <camera.h>
+#include <model.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_images.h>
 
 #include <iostream>
 
@@ -16,41 +18,31 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1024;
+const unsigned int SCR_HEIGHT = 1024;
 
-// camera
-Camera camera(glm::vec3(1.55f, 1.4f, 3.0f));
+Camera camera(glm::vec3(-1.7f, 4.5f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 
-glm::vec3 lightPos    = glm::vec3(1.55f, 5.4f, 1.3f);
-glm::vec3 lightPos2    = glm::vec3(1.55f, 1.4f, 1.0f);
+glm::vec3 lightPos    = glm::vec3(-1.7f, 4.5f, 3.0f);
 glm::vec3 lightColor  = glm::vec3(1.0f, 1.0f, 1.0f);
+Camera lightView(lightPos);
 
-// timing
+
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 int main()
 {
-    // glfw: initialize and configure
-    // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    // glfw window creation
-    // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Computergrafik Projekt", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -62,157 +54,223 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
-
-    // configure global opengl state
-    // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    // build and compile shaders
-    // -------------------------
-    Shader ourShader("../resources/shaders/Shaders/Model/model.vs", "../resources/shaders/Shaders/Model/model.fs");
-    Shader lightShader("../resources/shaders/Shaders/Lamp/Lamp.vs", "../resources/shaders/Shaders/Lamp/Lamp.fs");
 
 
-    float cube[] = {
-        // positions                vertex normals            texture
-        -0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       0.0f, 0.0f, 
-        0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       1.0f, 0.0f, 
-        0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       1.0f, 1.0f, 
-        0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       1.0f, 1.0f, 
-        -0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       0.0f, 1.0f, 
-        -0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,       0.0f, 0.0f,  
 
-        -0.5f, -0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        0.0f, 0.0f,
-        0.5f, -0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        1.0f, 0.0f,
-        0.5f,  0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        1.0f, 1.0f,
-        0.5f,  0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,        0.0f,  0.0f, 1.0f,        0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,        -1.0f,  0.0f,  0.0f,      1.0f, 0.0f, 
-        -0.5f,  0.5f, -0.5f,        -1.0f,  0.0f,  0.0f,      1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,        -1.0f,  0.0f,  0.0f,      0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,        -1.0f,  0.0f,  0.0f,      0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,        -1.0f,  0.0f,  0.0f,      0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,        -1.0f,  0.0f,  0.0f,      1.0f, 0.0f,
-
-        0.5f,  0.5f,  0.5f,        1.0f,  0.0f,  0.0f,       1.0f, 0.0f, 
-        0.5f,  0.5f, -0.5f,        1.0f,  0.0f,  0.0f,       1.0f, 1.0f, 
-        0.5f, -0.5f, -0.5f,        1.0f,  0.0f,  0.0f,       0.0f, 1.0f, 
-        0.5f, -0.5f, -0.5f,        1.0f,  0.0f,  0.0f,       0.0f, 1.0f, 
-        0.5f, -0.5f,  0.5f,        1.0f,  0.0f,  0.0f,       0.0f, 0.0f, 
-        0.5f,  0.5f,  0.5f,        1.0f,  0.0f,  0.0f,       1.0f, 0.0f, 
-
-        -0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,       0.0f, 1.0f, 
-        0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,       1.0f, 1.0f, 
-        0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,       1.0f, 0.0f, 
-        0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,       1.0f, 0.0f, 
-        -0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,       0.0f, 0.0f, 
-        -0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,       0.0f, 1.0f, 
-
-        -0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,       0.0f, 1.0f, 
-        0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,       1.0f, 1.0f, 
-        0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,       1.0f, 0.0f, 
-        0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,       1.0f, 0.0f, 
-        -0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,       0.0f, 0.0f, 
-        -0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,       0.0f, 1.0f,
-    };  
-
-   
-    unsigned int cubeVBO;       
-    glGenBuffers(1, &cubeVBO);
-    unsigned int lightVAO;
-    glGenVertexArrays(1, &lightVAO);
-    glBindVertexArray(lightVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    float vertices[] = {
+        // positions            // texture coords
+         0.5f, -0.5f, 0.0f,     1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f, // bottom left
+         0.5f,  0.5f, 0.0f,     1.0f, 1.0f, // top right
+        -0.5f,  0.5f, 0.0f,     0.0f, 1.0f  // top left 
+    };
 
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) nullptr);
+
+    unsigned int VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    // load models
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0); 
+    glBindVertexArray(0); 
 
 
 
-    // -----------
-    Model ourModel("../resources/objects/test/Test2.obj");
-    //Model ourModel("../resources/objects/test/Test.obj");
 
-    // draw in wireframe
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    // render loop
-    ourShader.use();
-    ourShader.setVec3("lightColor", lightColor);
-    ourShader.setVec3("lightPos", lightPos);
-    ourShader.setVec3("lightPos2", lightPos);
+
+    unsigned int fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    unsigned int textureColorbuffer;
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);  
+
+
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);  
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);  
+
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+        std::cout << "Frambuffer incomplete" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    /*
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
+    // create depth texture
+    unsigned int depthMap;
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // attach depth texture as FBO's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    */
+
+    Shader modelShader("../resources/shaders/Model.vs", "../resources/shaders/Model.fs");
+    Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
+    Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
+
+    Model model("../resources/objects/test/Test2.obj");
+
+
+    debugShader.use();
+    debugShader.setInt("depthMap", 0);
+
+    modelShader.use();
+    modelShader.setVec3("lightColor", lightColor);
+    modelShader.setVec3("lightPos", lightPos);
+
 
     // -----------
     while (!glfwWindowShouldClose(window))
     {
-        // per-frame time logic
-        // --------------------
+
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // input
-        // -----
         processInput(window);
 
-        // render
-        // ------
+
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+
+/*
+        glm::mat4 lightProjection, lightView;
+        glm::mat4 lightSpaceMatrix;
+        float near_plane = 1.0f, far_plane = 100.0f;
+        lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        lightSpaceMatrix = lightProjection * lightView;
+        // render scene from light's point of view
+        depthShader.use();
+        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glActiveTexture(GL_TEXTURE0);
+            model.draw(depthShader);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // reset viewport
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+        debugShader.use();
+        debugShader.setFloat("near_plane", near_plane);
+        debugShader.setFloat("far_plane", far_plane);
+*/
+        /*
+        depthShader.use();
+        glm::mat4 lightProjection =  glm::perspective(glm::radians(120.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 lightSpaceMatrix = lightProjection * lightView.GetViewMatrix();
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        depthShader.setMat4("model", modelMatrix);
+        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, depthMap);
+            model.draw(modelShader);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+
+        debugShader.use();
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        */
+
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        // don't forget to enable shader before setting uniforms
-        ourShader.use();
-
-        ourShader.setVec3("viewPos", camera.Position);
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
 
 
-
-        // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+        modelMatrix = glm::mat4(1.0f);
+        modelShader.use();
+        modelShader.setVec3("viewPos", camera.Position);
+        modelShader.setMat4("projection", projection);
+        modelShader.setMat4("view",  camera.GetViewMatrix());
 
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
+        modelMatrix = glm::mat4(1.0f);
+        modelShader.setMat4("model", modelMatrix);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
+        glEnable(GL_DEPTH_TEST);
+        model.draw(modelShader);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        debugShader.use();
+        glBindVertexArray(VAO);
+        glDisable(GL_DEPTH_TEST);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
+
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -226,19 +284,19 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        camera.ProcessKeyboard(DOWN, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera.ProcessKeyboard(UP, deltaTime);
 }
 
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
 
-// glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
+
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
     float xpos = static_cast<float>(xposIn);
@@ -252,7 +310,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    float yoffset = lastY - ypos; 
 
     lastX = xpos;
     lastY = ypos;
@@ -260,9 +318,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
