@@ -35,8 +35,7 @@ Camera lightView(lightPos,  glm::vec3(0.0f, 1.0f, 0.0f), -135.0f, -30.0f);
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-int main()
-{
+int main(){
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -122,33 +121,15 @@ int main()
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    /*
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
-    unsigned int depthMapFBO;
-    glGenFramebuffers(1, &depthMapFBO);
-    // create depth texture
-    unsigned int depthMap;
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    */
 
     Shader modelShader("../resources/shaders/Model.vs", "../resources/shaders/Model.fs");
     Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
     Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
+    Shader monopolyShader("../resources/shaders/monopoly.vs", "../resources/shaders/monopoly.fs");
 
     Model model("../resources/objects/Monopoly/szene.obj");
+    Model monopoly("../resources/objects/Monopoly/monopoly.obj");
 
 
     debugShader.use();
@@ -177,56 +158,6 @@ int main()
 
         glm::mat4 modelMatrix = glm::mat4(1.0f);
 
-/*
-        glm::mat4 lightProjection, lightView;
-        glm::mat4 lightSpaceMatrix;
-        float near_plane = 1.0f, far_plane = 100.0f;
-        lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-        lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-        lightSpaceMatrix = lightProjection * lightView;
-        // render scene from light's point of view
-        depthShader.use();
-        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-            glClear(GL_DEPTH_BUFFER_BIT);
-            glActiveTexture(GL_TEXTURE0);
-            model.draw(depthShader);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // reset viewport
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-        debugShader.use();
-        debugShader.setFloat("near_plane", near_plane);
-        debugShader.setFloat("far_plane", far_plane);
-*/
-        /*
-        depthShader.use();
-        glm::mat4 lightProjection =  glm::perspective(glm::radians(120.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 lightSpaceMatrix = lightProjection * lightView.GetViewMatrix();
-        glClear(GL_DEPTH_BUFFER_BIT);
-
-        depthShader.setMat4("model", modelMatrix);
-        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-        
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-            glClear(GL_DEPTH_BUFFER_BIT);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, depthMap);
-            model.draw(modelShader);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        
-
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-
-        debugShader.use();
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        */
         
         glCullFace(GL_FRONT);
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -244,9 +175,10 @@ int main()
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
 
-        /*
+        
         glClear(GL_COLOR_BUFFER_BIT);
 
+        /*
         debugShader.use();
         debugShader.setFloat("near_plane", near_plane);
         debugShader.setFloat("far_plane", far_plane);
@@ -257,13 +189,18 @@ int main()
         glBindTexture(GL_TEXTURE_2D, 0);
         */
 
-
-
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
 
         glEnable(GL_DEPTH_TEST);
+
+        monopolyShader.use();
+        monopolyShader.setVec3("viewPos", camera.Position);
+        monopolyShader.setMat4("projection", projection);
+        monopolyShader.setMat4("view",  camera.GetViewMatrix());
+        monopolyShader.setMat4("model", modelMatrix);
+        monopoly.draw(monopolyShader);
+
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        
         modelMatrix = glm::mat4(1.0f);
         modelShader.use();
         modelShader.setVec3("viewPos", camera.Position);
@@ -273,6 +210,7 @@ int main()
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
         model.draw(modelShader);
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
