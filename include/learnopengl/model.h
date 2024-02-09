@@ -204,7 +204,6 @@ private:
                     break;
                 }
             }
-            
             if(!skip)
             {   // if texture hasn't been loaded already, load it
                 Texture texture;
