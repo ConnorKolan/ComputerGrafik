@@ -1,5 +1,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <Spielstein.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -130,6 +131,17 @@ int main(){
 
     Model model("../resources/objects/Monopoly/szene.obj");
     Model monopoly("../resources/objects/Monopoly/monopoly.obj");
+    Model zylinder("../resources/objects/Modelle/Zylinder.obj");
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
+    //Model Schubkarre("../resources/objects/Modelle/Schubkarre.obj");
+    //Model Schlachtschiff("../resources/objects/Modelle/Schlachtschiff.obj");
+    //Model Fingerhut("../resources/objects/Modelle/Fingerhut.obj");
+    //Model Kanone("../resources/objects/Modelle/Kanone.obj");
+//
+    Spielstein zylinderSpielstein(glm::mat4(1.0f),camera.GetViewMatrix(), projection, &zylinder);
+//
+    //std::vector<Spielstein> spielsteine = [];
+
 
 
     debugShader.use();
@@ -174,6 +186,7 @@ int main(){
         glCullFace(GL_BACK); 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+ 
 
         
         glClear(GL_COLOR_BUFFER_BIT);
@@ -189,7 +202,7 @@ int main(){
         glBindTexture(GL_TEXTURE_2D, 0);
         */
 
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
+        projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
 
         glEnable(GL_DEPTH_TEST);
 
@@ -210,7 +223,7 @@ int main(){
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
         model.draw(modelShader);
-
+        zylinderSpielstein.draw(monopolyShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
