@@ -226,10 +226,30 @@ int main()
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         */
+        depthShader.use();
+        glm::mat4 lightProjection =  glm::perspective(glm::radians(120.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 lightSpaceMatrix = lightProjection * lightView.GetViewMatrix();
+
+        depthShader.setMat4("model", modelMatrix);
+        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
+        glEnable(GL_DEPTH_TEST);
+        model.draw(depthShader);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        debugShader.use();
+        glBindVertexArray(VAO);
+        glDisable(GL_DEPTH_TEST);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
+        glEnable(GL_DEPTH_TEST);
 
         modelMatrix = glm::mat4(1.0f);
         modelShader.use();
@@ -241,19 +261,8 @@ int main()
         modelMatrix = glm::mat4(1.0f);
         modelShader.setMat4("model", modelMatrix);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
-        glEnable(GL_DEPTH_TEST);
+
         model.draw(modelShader);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        debugShader.use();
-        glBindVertexArray(VAO);
-        glDisable(GL_DEPTH_TEST);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 
 
