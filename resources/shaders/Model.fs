@@ -12,17 +12,11 @@ uniform vec3 lightPos;
 uniform vec4 color;
 uniform sampler2D shadowMap;
 
-float shadowCalculation()
-{
-   // perform perspective divide
+float shadowCalculation(){
    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-   // transform to [0,1] range
    projCoords = projCoords * 0.5 + 0.5;
-   // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
    float closestDepth = texture(shadowMap, projCoords.xy).r; 
-   // get depth of current fragment from light's perspective
    float currentDepth = projCoords.z;
-   // check whether current frag pos is in shadow
    float bias = 0.001;
 
    float shadow = 0.0;
@@ -33,7 +27,7 @@ float shadowCalculation()
          shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
       }    
    }
-   
+
    shadow /= 9.0;
    return shadow;
 }  

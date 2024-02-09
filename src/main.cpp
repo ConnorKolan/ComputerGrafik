@@ -95,8 +95,6 @@ int main()
     glBindVertexArray(0); 
 
 
-
-
     const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 
     unsigned int depthMapFBO;
@@ -150,7 +148,7 @@ int main()
     Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
     Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
 
-    Model model("../resources/objects/test/Test2.obj");
+    Model model("../resources/objects/Monopoly/szene.obj");
 
 
     debugShader.use();
@@ -275,8 +273,6 @@ int main()
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
         model.draw(modelShader);
-
-
 
         glfwSwapBuffers(window);
         glfwPollEvents();
