@@ -244,11 +244,9 @@ int main()
         model.draw(depthShader);
         glCullFace(GL_BACK); 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-
-
-
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+
+        /*
         glClear(GL_COLOR_BUFFER_BIT);
 
         debugShader.use();
@@ -259,7 +257,7 @@ int main()
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glBindTexture(GL_TEXTURE_2D, 0);
-
+        */
 
 
 
