@@ -45,7 +45,7 @@ class Mesh{
             
             for(unsigned int i = 0; i < textures.size(); i++)
             {
-                glActiveTexture(GL_TEXTURE1 + i); // active proper texture unit before binding
+                glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
                 // retrieve texture number (the N in diffuse_textureN)
                 std::string number;
                 std::string name = textures[i].type;
