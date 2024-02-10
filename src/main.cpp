@@ -11,9 +11,10 @@
 #include <piece.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_images.h>
-
+#include <cmath>
 #include <iostream>
 
+glm::vec3 rotateVector(const glm::vec3& vec, float angleDegrees, const glm::vec3& axis);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -138,21 +139,19 @@ int main(){
     Model hatModel("../resources/objects/Modelle/Hut.obj");
     Model canonModel("../resources/objects/Modelle/Kanone.obj");
 
-
-    std::vector<Piece> pieces;
-
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
     glm::mat4 startMatrix = glm::mat4(1.0f);
+    glm::vec3 directionVector(1.0f, 0.0f, 0.0f);
     startMatrix = glm::scale(startMatrix, glm::vec3(0.01f));
 
     startMatrix = glm::translate(startMatrix, glm::vec3(175.0f, 88.0f, 195.0f));
-    Piece hat(&hatModel, startMatrix, camera.GetViewMatrix(), projection);
+    Piece hat(&hatModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
     pieces.push_back(hat);
 
-    startMatrix = glm::translate(startMatrix, glm::vec3(4.0f, 0.0f, 0.0f));
-    Piece canon(&canonModel, startMatrix, camera.GetViewMatrix(), projection);
-    pieces.push_back(canon);
 
+    /*startMatrix = glm::translate(startMatrix, glm::vec3(4.0f, 0.0f, 0.0f));
+    Piece canon(&canonModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
+    pieces.push_back(canon);*/
 
     debugShader.use();
     debugShader.setInt("depthMap", 0);
@@ -221,8 +220,10 @@ int main(){
         monopolyShader.setMat4("model", modelMatrix);
 
         monopoly.draw(monopolyShader);
-        hat.draw(monopolyShader);
-        canon.draw(monopolyShader);
+
+        for (size_t i = 0; i < pieces.size(); i++){
+            pieces[i].draw(monopolyShader);
+        }
 
         glBindTexture(GL_TEXTURE_2D, depthMap);
         modelMatrix = glm::mat4(1.0f);
@@ -245,10 +246,12 @@ int main(){
 
 void processInput(GLFWwindow *window){
 
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+        glfwSetWindowShouldClose(window, true);
+    }
+
     if(!pieceSelected){
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
-            glfwSetWindowShouldClose(window, true);
-        }
+
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
             camera.ProcessKeyboard(FORWARD, deltaTime);
         }
@@ -277,10 +280,12 @@ void processInput(GLFWwindow *window){
             pieceSelected = true;
             snapCamera2Piece();
         }
-
-
     }else{
-        if(glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS){
+        if(glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS){
+            pieceSelected = false;
+        }
+
+        if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
             if(currentPiece <= pieces.size()){
                 currentPiece++;
             }else{
@@ -288,17 +293,29 @@ void processInput(GLFWwindow *window){
             }
             snapCamera2Piece();
         }
+
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
+            float value = 0.1f;
+            pieces[currentPiece].move(value);
+            //snapCamera2Piece();
+        }
+
     }
 }
 
 void snapCamera2Piece(){
+    glm::vec3 piecePos = pieces[currentPiece].getPosition();
+    glm::vec3 pieceDir = pieces[currentPiece].getDirection();
 
-    std::cout << pieces.size() <<  std::endl;
-    float x = pieces[currentPiece].transMatrix[3][0];
-    float y = pieces[currentPiece].transMatrix[3][1];
-    float z = pieces[currentPiece].transMatrix[3][2];
+    camera.Position = glm::vec3(piecePos.x + ((-0.2f) * pieceDir.x), piecePos.y + 0.1f, piecePos.z - (0.2f * pieceDir.z));
+    
+    float temp = pieceDir.y;
+    pieceDir.y = camera.Front.y;
+    float horizontalAngle = std::acos(glm::dot(glm::vec3(1.0f, 0.0f, 0.0f), pieceDir));
+    pieceDir.y = temp;
 
-    camera.Position = glm::vec3(x, y, z);
+    camera.setYaw(horizontalAngle);
+    camera.setPitch(-25.0f);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -306,14 +323,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn){
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
-    if (firstMouse)
-    {
+    if (firstMouse){
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
@@ -325,10 +339,26 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
-}
 
+    if(!pieceSelected){
+        camera.ProcessMouseMovement(xoffset, yoffset);
+    }else{
+        float x = pieces[currentPiece].transMatrix[3][0];
+        float y = pieces[currentPiece].transMatrix[3][1];
+        float z = pieces[currentPiece].transMatrix[3][2];
+
+        camera.rotateAroundCenter(glm::vec3(x, y, z), xoffset, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        camera.setYaw(camera.Yaw - xoffset);
+        pieces[currentPiece].direction = rotateVector(pieces[currentPiece].direction, xoffset, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+}
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+glm::vec3 rotateVector(const glm::vec3& vec, float angleDegrees, const glm::vec3& axis) {
+    glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(angleDegrees), axis);
+    return glm::vec3(rotationMatrix * glm::vec4(vec, 1.0f));
 }
