@@ -66,6 +66,21 @@ public:
         return glm::lookAt(Position, Position + Front, Up);
     }
 
+    void setPosition(glm::vec3 position){
+        this->Position = position;
+        updateCameraVectors();
+    }
+
+    void setYaw(float yaw){
+        this->Yaw = yaw;
+        updateCameraVectors();
+    }
+
+    void setPitch(float pitch){
+        this->Pitch = pitch;
+        updateCameraVectors();
+    }
+
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {
         float velocity = MovementSpeed * deltaTime;
