@@ -24,7 +24,7 @@ void snapCamera2Piece();
 const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 1024;
 
-Camera camera(glm::vec3(1.55f, 5.4f, 1.3f));
+Camera camera(glm::vec3(1.55f, 3.4f, 1.3f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -133,25 +133,38 @@ int main(){
     Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
     Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
     Shader monopolyShader("../resources/shaders/monopoly.vs", "../resources/shaders/monopoly.fs");
+    Shader pieceShader("../resources/shaders/PieceShader.vs", "../resources/shaders/PieceShader.fs");
 
     Model model("../resources/objects/Monopoly/szene.obj");
     Model monopoly("../resources/objects/Monopoly/monopoly.obj");
-    Model hatModel("../resources/objects/Modelle/Hut.obj");
-    Model canonModel("../resources/objects/Modelle/Kanone.obj");
+    
+    Model hatModel("../resources/objects/Modelle/Zylinder.obj");
+    Model cartModel("../resources/objects/Modelle/Schubkarre.obj");
+    Model thimbleModel("../resources/objects/Modelle/Fingerhut.obj");
+    Model shipModel("../resources/objects/Modelle/Schiff.obj");
+
 
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
     glm::mat4 startMatrix = glm::mat4(1.0f);
     glm::vec3 directionVector(1.0f, 0.0f, 0.0f);
     startMatrix = glm::scale(startMatrix, glm::vec3(0.01f));
 
-    startMatrix = glm::translate(startMatrix, glm::vec3(175.0f, 88.0f, 195.0f));
+    startMatrix = glm::translate(startMatrix, glm::vec3(172.0f, 87.0f, 197.0f));
     Piece hat(&hatModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
     pieces.push_back(hat);
 
+    startMatrix = glm::translate(startMatrix, glm::vec3(1.0f, 0.0f, -4.0f));
+    Piece cart(&cartModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
+    pieces.push_back(cart);
 
-    /*startMatrix = glm::translate(startMatrix, glm::vec3(4.0f, 0.0f, 0.0f));
-    Piece canon(&canonModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
-    pieces.push_back(canon);*/
+    startMatrix = glm::translate(startMatrix, glm::vec3(4.0f, 0.0f, 1.0f));
+    Piece thimble(&thimbleModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
+    pieces.push_back(thimble);
+
+    startMatrix = glm::translate(startMatrix, glm::vec3(-1.0f, -1.0f, 4.0f));
+    Piece ship(&shipModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
+    pieces.push_back(ship);
+
 
     debugShader.use();
     debugShader.setInt("depthMap", 0);
@@ -192,6 +205,11 @@ int main(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
         glEnable(GL_DEPTH_TEST);
         model.draw(depthShader);
+        monopoly.draw(depthShader);
+        for (size_t i = 0; i < pieces.size(); i++){
+            pieces[i].draw(depthShader);
+        }
+
         glCullFace(GL_BACK); 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
@@ -210,7 +228,7 @@ int main(){
         glBindTexture(GL_TEXTURE_2D, 0);
         */
 
-        projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
+        projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.01f, 20.0f);
 
         glEnable(GL_DEPTH_TEST);
 
@@ -221,9 +239,38 @@ int main(){
 
         monopoly.draw(monopolyShader);
 
+
+        pieceShader.use();
+        pieceShader.setVec3("lightColor", lightColor);
+        pieceShader.setVec3("lightPos", lightPos);
+        pieceShader.setVec3("viewPos", camera.Position);
+
+        pieceShader.setMat4("projection", projection);
+        pieceShader.setMat4("view",  camera.GetViewMatrix());
+        pieceShader.setMat4("model", modelMatrix);
+
         for (size_t i = 0; i < pieces.size(); i++){
-            pieces[i].draw(monopolyShader);
+            pieces[i].draw(pieceShader);
         }
+
+
+        
+
+        /*pieceShader.use();
+
+        lm::vec3 diffuseColor = lightColor * glm::vec3(0.5);
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+
+        pieceShader.setVec3("lightAmbient", glm::vec3(1.0f));
+        pieceShader.setVec3("light.diffuse", diffuseColor);
+        pieceShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+        pieceShader.setMat4("projection", projection);
+        pieceShader.setMat4("view",  camera.GetViewMatrix());
+        pieceShader.setMat4("model", modelMatrix);*/
+
+  
+
 
         glBindTexture(GL_TEXTURE_2D, depthMap);
         modelMatrix = glm::mat4(1.0f);
@@ -235,6 +282,7 @@ int main(){
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
         model.draw(modelShader);
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -250,54 +298,68 @@ void processInput(GLFWwindow *window){
         glfwSetWindowShouldClose(window, true);
     }
 
+    float speed = deltaTime / 10;
+    float pieceSpeed = 0.1f;
     if(!pieceSelected){
 
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
+            speed *= 10;
+        }
+
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
-            camera.ProcessKeyboard(FORWARD, deltaTime);
+            camera.ProcessKeyboard(FORWARD, speed);
         }
             
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
-            camera.ProcessKeyboard(BACKWARD, deltaTime);
+            camera.ProcessKeyboard(BACKWARD, speed);
         }
             
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
-            camera.ProcessKeyboard(LEFT, deltaTime);
+            camera.ProcessKeyboard(LEFT, speed);
         }
             
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
-            camera.ProcessKeyboard(RIGHT, deltaTime);
+            camera.ProcessKeyboard(RIGHT, speed);
         }
             
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
-            camera.ProcessKeyboard(DOWN, deltaTime);
+            camera.ProcessKeyboard(DOWN, speed);
         }
             
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
-            camera.ProcessKeyboard(UP, deltaTime);
+            camera.ProcessKeyboard(UP, speed);
         }
 
-        if(glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS){
-            pieceSelected = true;
-            snapCamera2Piece();
-        }
-    }else{
-        if(glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS){
-            pieceSelected = false;
+        if(glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS){
+            currentPiece = 0;
         }
 
-        if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-            if(currentPiece <= pieces.size()){
-                currentPiece++;
-            }else{
-                currentPiece = 0;
-            }
-            snapCamera2Piece();
+        if(glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS){
+            currentPiece = 1;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
-            float value = 0.1f;
-            pieces[currentPiece].move(value);
-            //snapCamera2Piece();
+        if(glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS){
+            currentPiece = 2;
+        }
+
+        if(glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS){
+            currentPiece = 3;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
+            pieces[currentPiece].move(pieceSpeed, glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
+            pieces[currentPiece].move(-pieceSpeed, glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
+            pieces[currentPiece].move(pieceSpeed, glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+            pieces[currentPiece].move(-pieceSpeed, glm::vec3(0.0f, 0.0f, 1.0f));
         }
 
     }
@@ -326,9 +388,6 @@ void snapCamera2Piece(){
 
     camera.setPitch(-35.0f);
 }
-
-
-
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {

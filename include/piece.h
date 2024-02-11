@@ -15,6 +15,7 @@ class Piece{
         glm::mat4 projection;
         glm::vec3 direction;
 
+
         float velocity;
 
         Piece(Model* model, glm::mat4 transMatrix, glm::mat4 view, glm::mat4 projection, glm::vec3 direction){
@@ -27,11 +28,12 @@ class Piece{
 
         void draw(Shader &shader){
             shader.setMat4("model", this->transMatrix);
+
             model->draw(shader);
         }
 
-        void move(float value){
-            this->transMatrix = glm::translate(this->transMatrix, value * this->getDirection());
+        void move(float value, glm::vec3 direction){
+            this->transMatrix = glm::translate(this->transMatrix, value * direction);
         }
 
         glm::vec3 getDirection(){
