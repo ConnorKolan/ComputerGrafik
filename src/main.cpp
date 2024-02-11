@@ -100,7 +100,7 @@ int main(){
     glBindVertexArray(0); 
 
 
-    const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
+    const unsigned int SHADOW_WIDTH = 8192, SHADOW_HEIGHT = 8192;
 
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
@@ -136,13 +136,15 @@ int main(){
     Shader pieceShader("../resources/shaders/PieceShader.vs", "../resources/shaders/PieceShader.fs");
 
     Model model("../resources/objects/Monopoly/szene.obj");
+    
     Model monopoly("../resources/objects/Monopoly/monopoly.obj");
     
     Model hatModel("../resources/objects/Modelle/Zylinder.obj");
     Model cartModel("../resources/objects/Modelle/Schubkarre.obj");
     Model thimbleModel("../resources/objects/Modelle/Fingerhut.obj");
     Model shipModel("../resources/objects/Modelle/Schiff.obj");
-
+    Model houseSet("../resources/objects/Modelle/haus_set.obj");
+    Model hotelSet("../resources/objects/Modelle/hotel_set.obj");
 
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
     glm::mat4 startMatrix = glm::mat4(1.0f);
@@ -165,6 +167,11 @@ int main(){
     Piece ship(&shipModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
     pieces.push_back(ship);
 
+    Piece houses(&houseSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector);
+    pieces.push_back(houses);
+
+    Piece hotels(&hotelSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector);
+    pieces.push_back(hotels);
 
     debugShader.use();
     debugShader.setInt("depthMap", 0);
@@ -175,6 +182,7 @@ int main(){
 
     float near_plane = 0.1f;
     float far_plane = 20.0f;
+
     // -----------
     while (!glfwWindowShouldClose(window))
     {
@@ -191,7 +199,6 @@ int main(){
 
 
         glm::mat4 modelMatrix = glm::mat4(1.0f);
-
         
         glCullFace(GL_FRONT);
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -204,6 +211,7 @@ int main(){
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
         glEnable(GL_DEPTH_TEST);
+
         model.draw(depthShader);
         monopoly.draw(depthShader);
         for (size_t i = 0; i < pieces.size(); i++){
@@ -237,7 +245,7 @@ int main(){
         monopolyShader.setMat4("view",  camera.GetViewMatrix());
         monopolyShader.setMat4("model", modelMatrix);
 
-        monopoly.draw(monopolyShader);
+        //monopoly.draw(monopolyShader);
 
 
         pieceShader.use();
@@ -248,6 +256,7 @@ int main(){
         pieceShader.setMat4("projection", projection);
         pieceShader.setMat4("view",  camera.GetViewMatrix());
         pieceShader.setMat4("model", modelMatrix);
+
 
         for (size_t i = 0; i < pieces.size(); i++){
             pieces[i].draw(pieceShader);
@@ -365,29 +374,6 @@ void processInput(GLFWwindow *window){
     }
 }
 
-void snapCamera2Piece(){
-    glm::vec3 piecePos = pieces[currentPiece].getPosition();
-    glm::vec3 pieceDir = pieces[currentPiece].getDirection();
-
-    camera.Position = glm::vec3(piecePos.x + ((-0.2f) * pieceDir.x), piecePos.y + 0.1f, piecePos.z - (0.2f * pieceDir.z));
-    
-    glm::vec3 camDir = glm::normalize(camera.Front);
-    
-    float a = glm::length(glm::vec2(camDir.x, camDir.z));
-    float b = glm::length(glm::vec2(pieceDir.x, pieceDir.z));
-
-
-    float c = std::sqrt(std::pow(pieceDir.x - camDir.x, 2) + std::pow(pieceDir.z - camDir.z, 2));
-
-
-    float angle = (std::pow((a), 2) + std::pow((b), 2) - std::pow((c), 2)) / (2 * a * b);
-    float acosAngle = std::acos(angle);
-    float raidansAngle = ((acosAngle * 180)/3.1415);
-    float angle360 = ((acosAngle * 360.)/ 3.1415);
-    camera.setYaw(camera.Yaw + raidansAngle);
-
-    camera.setPitch(-35.0f);
-}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -426,9 +412,4 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn){
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
-}
-
-glm::vec3 rotateVector(const glm::vec3& vec, float angleDegrees, const glm::vec3& axis) {
-    glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(angleDegrees), axis);
-    return glm::vec3(rotationMatrix * glm::vec4(vec, 1.0f));
 }
