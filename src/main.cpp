@@ -9,6 +9,9 @@
 #include <camera.h>
 #include <model.h>
 #include <piece.h>
+#include <camera.h>
+#include <light.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_images.h>
 #include <cmath>
@@ -20,9 +23,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void snapCamera2Piece();
+void createTexture(unsigned int& depthMap);
+void renderShadowMap(Shader& depthShader, unsigned int& depthMapFBO, Model& model, Model& monopoly, Light& light);
 
 const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 1024;
+const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
 
 Camera camera(glm::vec3(1.55f, 3.4f, 1.3f));
 float lastX = SCR_WIDTH / 2.0f;
@@ -33,10 +39,7 @@ std::vector<Piece> pieces;
 bool pieceSelected = false;;
 int currentPiece = 0;
 
-
-glm::vec3 lightPos    = glm::vec3(5.55f, 7.5f, 5.3f);
-glm::vec3 lightColor  = glm::vec3(1.0f, 1.0f, 1.0f);
-Camera lightView(lightPos,  glm::vec3(0.0f, 1.0f, 0.0f), -135.0f, -30.0f);
+std::vector<Light> lights;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -100,21 +103,15 @@ int main(){
     glBindVertexArray(0); 
 
 
-    const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
 
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
     // create depth texture
-    unsigned int depthMap;
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    unsigned int depthMap, depthMap2;
+
+    createTexture(depthMap);
+    createTexture(depthMap2);
+
     // attach depth texture as FBO's depth buffer
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
@@ -128,6 +125,7 @@ int main(){
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
+    //-------------------------------- Load models --------------------------------------
 
     Shader modelShader("../resources/shaders/Model.vs", "../resources/shaders/Model.fs");
     Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
@@ -149,26 +147,23 @@ int main(){
     startMatrix = glm::scale(startMatrix, glm::vec3(0.01f));
 
     startMatrix = glm::translate(startMatrix, glm::vec3(172.0f, 86.5f, 197.0f));
-    Piece hat(&hatModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
-    pieces.push_back(hat);
+    pieces.push_back(Piece(&hatModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
 
     startMatrix = glm::translate(startMatrix, glm::vec3(1.0f, 0.0f, -4.0f));
-    Piece cart(&cartModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
-    pieces.push_back(cart);
+    pieces.push_back(Piece(&cartModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
 
     startMatrix = glm::translate(startMatrix, glm::vec3(4.0f, 0.0f, 1.0f));
-    Piece thimble(&thimbleModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
-    pieces.push_back(thimble);
+    pieces.push_back(Piece(&thimbleModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
 
-    startMatrix = glm::translate(startMatrix, glm::vec3(-1.0f, -1.0f, 4.0f));
-    Piece ship(&shipModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
-    pieces.push_back(ship);
+    startMatrix = glm::translate(startMatrix, glm::vec3(-1.0f, 0.0f, 4.0f));
+    pieces.push_back(Piece(&shipModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
+    pieces.push_back(Piece(&houseSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
+    pieces.push_back(Piece(&hotelSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
 
-    Piece houses(&houseSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector);
-    pieces.push_back(houses);
+    //-------------------------------- Define lights --------------------------------------
 
-    Piece hotels(&hotelSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector);
-    pieces.push_back(hotels);
+    lights.push_back(Light(glm::vec3(5.55f, 7.5f, 5.3f), glm::vec3(1.0f, 1.0f, 1.0f), -135.0f, -30.0f));
+    lights.push_back(Light(glm::vec3(10.7f, 7.25f, -2.94f), glm::vec3(1.0f, 1.0f, 1.0f), -194.0f, -25.0f));
 
     float near_plane = 0.1f;
     float far_plane = 20.0f;
@@ -188,34 +183,11 @@ int main(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-        glm::mat4 modelMatrix = glm::mat4(1.0f);
-        
-        glCullFace(GL_FRONT);
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        depthShader.use();
-        glm::mat4 lightProjection =  glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.1f, 20.0f);
-        glm::mat4 lightSpaceMatrix = lightProjection * lightView.GetViewMatrix();
-
-        depthShader.setMat4("model", modelMatrix);
-        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
-        glEnable(GL_DEPTH_TEST);
-
-        model.draw(depthShader);
-        monopoly.draw(depthShader);
-        for (size_t i = 0; i < pieces.size(); i++){
-            pieces[i].draw(depthShader);
-        }
-
-        glCullFace(GL_BACK); 
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        renderShadowMap(depthShader, depthMapFBO, model, monopoly, lights[0]);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        /*
         debugShader.use();
         debugShader.setFloat("near_plane", near_plane);
         debugShader.setFloat("far_plane", far_plane);
@@ -224,31 +196,36 @@ int main(){
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glBindTexture(GL_TEXTURE_2D, 0);
-        */
-
+        
+       
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+        glm::mat4 lightProjection =  glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.1f, 20.0f);
+        glm::mat4 lightSpaceMatrix = lightProjection * lights[0].camera.GetViewMatrix();
+        glm::mat4 lightSpaceMatrix2 = lightProjection * lights[1].camera.GetViewMatrix();
         projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.01f, 20.0f);
 
+
         glEnable(GL_DEPTH_TEST);
-
-
-
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
+
         modelMatrix = glm::mat4(1.0f);
+
         modelShader.use();
         modelShader.setInt("shadowMap", 1);
-        modelShader.setVec3("lightColor", lightColor);
-        modelShader.setVec3("lightPos", lightPos);
+        modelShader.setInt("shadowMap2", 2);
+        modelShader.setVec3("lightColor", lights[0].color);
+        modelShader.setVec3("lightPos", lights[0].position);
         modelShader.setVec3("viewPos", camera.Position);
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view",  camera.GetViewMatrix());
         modelShader.setMat4("model", modelMatrix);
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        modelShader.setMat4("lightSpaceMatrix2", lightSpaceMatrix2);
         modelShader.setFloat("bias", 0.0003);
 
         modelShader.setInt("hasTexture", false);
         model.draw(modelShader);
-
         modelShader.setFloat("bias", 0.00001);
         modelShader.setInt("hasTexture", true);
         monopoly.draw(modelShader);
@@ -258,6 +235,8 @@ int main(){
             pieces[i].draw(modelShader);
         }
 
+
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -265,6 +244,47 @@ int main(){
     return 0;
 }
 
+void renderShadowMap(Shader& depthShader, unsigned int& depthMapFBO, Model& model, Model& monopoly, Light &light){
+    glCullFace(GL_FRONT);
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    glm::mat4 lightProjection =  glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.1f, 20.0f);
+    glm::mat4 lightSpaceMatrix = lightProjection * light.camera.GetViewMatrix();
+
+    depthShader.use();
+
+
+    depthShader.setMat4("model", modelMatrix);
+    depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+    glEnable(GL_DEPTH_TEST);
+
+    model.draw(depthShader);
+    monopoly.draw(depthShader);
+    for (size_t i = 0; i < pieces.size(); i++){
+        pieces[i].draw(depthShader);
+    }
+
+    glCullFace(GL_BACK); 
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
+void createTexture(unsigned int& depthMap){
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+}
 
 void processInput(GLFWwindow *window){
 

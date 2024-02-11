@@ -8,16 +8,20 @@ out vec2 texCoord;
 out vec3 normal;
 out vec3 fragPos;
 out vec4 fragPosLightSpace;
+out vec4 fragPosLightSpace2;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
+uniform mat4 lightSpaceMatrix2;
+
 
 void main(){
     texCoord = aTexCoord;
     fragPos = vec3(model * vec4(aPos, 1.0));
     fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);
+    fragPosLightSpace2 = lightSpaceMatrix2 * vec4(fragPos, 1.0);
     
     mat3 rotation = mat3(model[0].xyz, model[1].xyz, model[2].xyz);
     normal = vec3(rotation * aNormal);
