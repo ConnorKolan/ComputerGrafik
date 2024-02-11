@@ -10,14 +10,16 @@ uniform vec3 viewPos;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec4 color;
+uniform bool hasTexture;
 uniform sampler2D shadowMap;
+uniform sampler2D texture0;
+uniform float bias;
 
 float shadowCalculation(){
    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
    projCoords = projCoords * 0.5 + 0.5;
    float closestDepth = texture(shadowMap, projCoords.xy).r; 
    float currentDepth = projCoords.z;
-   float bias = 0.0005;
 
    float shadow = 0.0;
    vec2 texelSize = 5.0 / textureSize(shadowMap, 0);
@@ -53,7 +55,9 @@ vec3 lighting(){
 
 
 void main(){    
-   vec3 result = lighting();
-
-   FragColor = color * vec4(lighting(), 1.0);
+   if(!hasTexture){
+      FragColor = color * vec4(lighting(), 1.0);
+   }else{
+      FragColor = texture(texture0, texCoord) * color * vec4(lighting() * 1.2, 1.0);
+   }
 }

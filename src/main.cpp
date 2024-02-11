@@ -100,7 +100,7 @@ int main(){
     glBindVertexArray(0); 
 
 
-    const unsigned int SHADOW_WIDTH = 8192, SHADOW_HEIGHT = 8192;
+    const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
 
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
@@ -132,11 +132,8 @@ int main(){
     Shader modelShader("../resources/shaders/Model.vs", "../resources/shaders/Model.fs");
     Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
     Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
-    Shader monopolyShader("../resources/shaders/monopoly.vs", "../resources/shaders/monopoly.fs");
-    Shader pieceShader("../resources/shaders/PieceShader.vs", "../resources/shaders/PieceShader.fs");
 
     Model model("../resources/objects/Monopoly/szene.obj");
-    
     Model monopoly("../resources/objects/Monopoly/monopoly.obj");
     
     Model hatModel("../resources/objects/Modelle/Zylinder.obj");
@@ -151,7 +148,7 @@ int main(){
     glm::vec3 directionVector(1.0f, 0.0f, 0.0f);
     startMatrix = glm::scale(startMatrix, glm::vec3(0.01f));
 
-    startMatrix = glm::translate(startMatrix, glm::vec3(172.0f, 87.0f, 197.0f));
+    startMatrix = glm::translate(startMatrix, glm::vec3(172.0f, 86.5f, 197.0f));
     Piece hat(&hatModel, startMatrix, camera.GetViewMatrix(), projection, directionVector);
     pieces.push_back(hat);
 
@@ -172,13 +169,6 @@ int main(){
 
     Piece hotels(&hotelSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector);
     pieces.push_back(hotels);
-
-    debugShader.use();
-    debugShader.setInt("depthMap", 0);
-
-    modelShader.use();
-    modelShader.setVec3("lightColor", lightColor);
-    modelShader.setVec3("lightPos", lightPos);
 
     float near_plane = 0.1f;
     float far_plane = 20.0f;
@@ -240,58 +230,33 @@ int main(){
 
         glEnable(GL_DEPTH_TEST);
 
-        monopolyShader.use();
-        monopolyShader.setMat4("projection", projection);
-        monopolyShader.setMat4("view",  camera.GetViewMatrix());
-        monopolyShader.setMat4("model", modelMatrix);
-
-        //monopoly.draw(monopolyShader);
 
 
-        pieceShader.use();
-        pieceShader.setVec3("lightColor", lightColor);
-        pieceShader.setVec3("lightPos", lightPos);
-        pieceShader.setVec3("viewPos", camera.Position);
-
-        pieceShader.setMat4("projection", projection);
-        pieceShader.setMat4("view",  camera.GetViewMatrix());
-        pieceShader.setMat4("model", modelMatrix);
-
-
-        for (size_t i = 0; i < pieces.size(); i++){
-            pieces[i].draw(pieceShader);
-        }
-
-
-        
-
-        /*pieceShader.use();
-
-        lm::vec3 diffuseColor = lightColor * glm::vec3(0.5);
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
-
-        pieceShader.setVec3("lightAmbient", glm::vec3(1.0f));
-        pieceShader.setVec3("light.diffuse", diffuseColor);
-        pieceShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-
-        pieceShader.setMat4("projection", projection);
-        pieceShader.setMat4("view",  camera.GetViewMatrix());
-        pieceShader.setMat4("model", modelMatrix);*/
-
-  
-
-
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         modelMatrix = glm::mat4(1.0f);
         modelShader.use();
+        modelShader.setInt("shadowMap", 1);
+        modelShader.setVec3("lightColor", lightColor);
+        modelShader.setVec3("lightPos", lightPos);
         modelShader.setVec3("viewPos", camera.Position);
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view",  camera.GetViewMatrix());
         modelShader.setMat4("model", modelMatrix);
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        modelShader.setFloat("bias", 0.0003);
 
+        modelShader.setInt("hasTexture", false);
         model.draw(modelShader);
 
+        modelShader.setFloat("bias", 0.00001);
+        modelShader.setInt("hasTexture", true);
+        monopoly.draw(modelShader);
+
+
+        for (size_t i = 0; i < pieces.size(); i++){
+            pieces[i].draw(modelShader);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
