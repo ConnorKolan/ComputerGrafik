@@ -309,14 +309,26 @@ void snapCamera2Piece(){
 
     camera.Position = glm::vec3(piecePos.x + ((-0.2f) * pieceDir.x), piecePos.y + 0.1f, piecePos.z - (0.2f * pieceDir.z));
     
-    float temp = pieceDir.y;
-    pieceDir.y = camera.Front.y;
-    float horizontalAngle = std::acos(glm::dot(glm::vec3(1.0f, 0.0f, 0.0f), pieceDir));
-    pieceDir.y = temp;
+    glm::vec3 camDir = glm::normalize(camera.Front);
+    
+    float a = glm::length(glm::vec2(camDir.x, camDir.z));
+    float b = glm::length(glm::vec2(pieceDir.x, pieceDir.z));
 
-    camera.setYaw(horizontalAngle);
-    camera.setPitch(-25.0f);
+
+    float c = std::sqrt(std::pow(pieceDir.x - camDir.x, 2) + std::pow(pieceDir.z - camDir.z, 2));
+
+
+    float angle = (std::pow((a), 2) + std::pow((b), 2) - std::pow((c), 2)) / (2 * a * b);
+    float acosAngle = std::acos(angle);
+    float raidansAngle = ((acosAngle * 180)/3.1415);
+    float angle360 = ((acosAngle * 360.)/ 3.1415);
+    camera.setYaw(camera.Yaw + raidansAngle);
+
+    camera.setPitch(-35.0f);
 }
+
+
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -350,7 +362,6 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn){
         camera.rotateAroundCenter(glm::vec3(x, y, z), xoffset, glm::vec3(0.0f, 1.0f, 0.0f));
 
         camera.setYaw(camera.Yaw - xoffset);
-        pieces[currentPiece].direction = rotateVector(pieces[currentPiece].direction, xoffset, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 }
 
