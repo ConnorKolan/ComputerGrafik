@@ -25,12 +25,13 @@ void processInput(GLFWwindow *window);
 void snapCamera2Piece();
 void createTexture(unsigned int& depthMap);
 void renderShadowMap(Shader& depthShader, unsigned int& depthMapFBO, Model& model, Model& monopoly, Light& light);
+unsigned int loadCubemap(std::vector<std::string> faces);
 
 const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 1024;
 const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
 
-Camera camera(glm::vec3(0.3f, 2.3f, -2.5f));
+Camera camera(glm::vec3(5.55f, 7.5f, 5.3f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -130,6 +131,7 @@ int main(){
     Shader modelShader("../resources/shaders/Model.vs", "../resources/shaders/Model.fs");
     Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
     Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
+    Shader skyboxShader("../resources/shaders/skybox.vs", "../resources/shaders/skybox.fs");
 
     Model model("../resources/objects/Monopoly/szene.obj");
     Model monopoly("../resources/objects/Monopoly/monopoly.obj");
@@ -159,6 +161,74 @@ int main(){
     pieces.push_back(Piece(&shipModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
     pieces.push_back(Piece(&houseSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
     pieces.push_back(Piece(&hotelSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
+
+
+
+    float skyboxVertices[] = {
+        // positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+
+    unsigned int skyboxVAO, skyboxVBO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+
+    std::vector<std::string> faces{
+        "../resources/objects/Skybox/Right.bmp",
+        "../resources/objects/Skybox/Left.bmp",
+        "../resources/objects/Skybox/Top.bmp",
+        "../resources/objects/Skybox/Bottom.bmp",
+        "../resources/objects/Skybox/Front.bmp",
+        "../resources/objects/Skybox/Back.bmp"
+    };
+    unsigned int cubemapTexture = loadCubemap(faces);
+
 
     //-------------------------------- Define lights --------------------------------------
 
@@ -224,7 +294,7 @@ int main(){
         modelShader.setMat4("lightSpaceMatrix2", lightSpaceMatrix2);
         modelShader.setFloat("bias", 0.0003);
 
-       // glEnable(GL_FRAMEBUFFER_SRGB); 
+        glEnable(GL_FRAMEBUFFER_SRGB); 
 
         modelShader.setInt("hasTexture", false);
         model.draw(modelShader);
@@ -237,7 +307,18 @@ int main(){
             pieces[i].draw(modelShader);
         }
 
-
+        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+        skyboxShader.use();
+        glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+        skyboxShader.setMat4("view", view);
+        skyboxShader.setMat4("projection", projection);
+        // skybox cube
+        glBindVertexArray(skyboxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS); // set depth function back to default
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -399,4 +480,33 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn){
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+unsigned int loadCubemap(std::vector<std::string> faces){
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
 }
