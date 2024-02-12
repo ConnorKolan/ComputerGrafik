@@ -26,7 +26,6 @@ class Model{
             for (size_t i = 0; i < this->meshes.size(); i++){
                 meshes[i].draw(shader);
             }
-            
         }
 
     private:

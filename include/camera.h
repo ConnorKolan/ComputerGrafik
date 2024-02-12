@@ -4,6 +4,8 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <cmath>
+#include <iostream>
 
 #include <vector>
 
@@ -18,7 +20,7 @@ enum Camera_Movement {
 };
 
 // Default camera values
-const float YAW         = -90.0f;
+const float YAW         =  -90.0f;
 const float PITCH       =  0.0f;
 const float SPEED       =  2.5f;
 const float SENSITIVITY =  0.1f;
@@ -52,8 +54,7 @@ public:
         updateCameraVectors();
     }
 
-    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
-    {
+    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM){
         Position = glm::vec3(posX, posY, posZ);
         WorldUp = glm::vec3(upX, upY, upZ);
         Yaw = yaw;
@@ -64,6 +65,30 @@ public:
     glm::mat4 GetViewMatrix()
     {
         return glm::lookAt(Position, Position + Front, Up);
+    }
+
+    void setPosition(glm::vec3 position){
+        this->Position = position;
+        updateCameraVectors();
+    }
+
+    void setYaw(float yaw){
+        this->Yaw = fmod(yaw, 360.0f);
+        updateCameraVectors();
+    }
+
+    void setPitch(float pitch){
+        this->Pitch = pitch;
+        updateCameraVectors();
+    }
+
+    void rotateAroundCenter(glm::vec3 center, float angleDegrees, glm::vec3 axis) {
+
+        float angleRadians = glm::radians(angleDegrees);
+        glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angleRadians, axis);
+        glm::vec4 rotatedPoint = rotationMatrix * glm::vec4(this->Position - center, 1.0f);
+
+        this->setPosition(glm::vec3(rotatedPoint) + center);
     }
 
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)

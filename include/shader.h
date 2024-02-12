@@ -15,8 +15,12 @@
 class Shader{
     public:
     unsigned int ID;
-
+    const char* vertexShaderPath;
+    const char* fragmentShaderPath;
     Shader(const char* vertexShaderPath, const char* fragmentShaderPath){
+        this->vertexShaderPath = vertexShaderPath;
+        this->fragmentShaderPath = fragmentShaderPath;
+
         std::string vertexCode;
         std::string fragmentCode;
 
@@ -118,7 +122,7 @@ private:
             if(!success)
             {
                 glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-                std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type <<  " with: " << this->vertexShaderPath <<  " or " << this->fragmentShaderPath  << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
             }
         }
         else
@@ -127,7 +131,7 @@ private:
             if(!success)
             {
                 glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-                std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type  <<  " with: " << this->vertexShaderPath <<  " or " << this->fragmentShaderPath << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
             }
         }
     }

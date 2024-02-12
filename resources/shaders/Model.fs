@@ -5,19 +5,26 @@ in vec2 texCoord;
 in vec3 normal;
 in vec3 fragPos;
 in vec4 fragPosLightSpace;
+in vec4 fragPosLightSpace2;
 
 uniform vec3 viewPos;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
+uniform vec3 lightPos2;
 uniform vec4 color;
-uniform sampler2D shadowMap;
+uniform bool hasTexture;
 
-float shadowCalculation(){
-   vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+uniform sampler2D shadowMap;
+uniform sampler2D shadowMap2;
+
+uniform sampler2D texture0;
+uniform float bias;
+
+float shadowCalculation(vec4 lightSpacePos, sampler2D shadowMap){
+   vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
    projCoords = projCoords * 0.5 + 0.5;
    float closestDepth = texture(shadowMap, projCoords.xy).r; 
    float currentDepth = projCoords.z;
-   float bias = 0.0005;
 
    float shadow = 0.0;
    vec2 texelSize = 5.0 / textureSize(shadowMap, 0);
@@ -28,7 +35,7 @@ float shadowCalculation(){
       }    
    }
 
-   shadow /= 9.0;
+   shadow /= 15.0;
    return shadow;
 }  
 
@@ -47,13 +54,15 @@ vec3 lighting(){
    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64);
    vec3 specular = specularStrength * spec * lightColor;  
    
-   return  (ambient + (1.0 - shadowCalculation()) * (diffuse + specular));
-}
+   return   (ambient + (1.0 - shadowCalculation(fragPosLightSpace, shadowMap))  * (diffuse + specular));
+}           
 
 
 
 void main(){    
-   vec3 result = lighting();
-
-   FragColor = color * vec4(lighting(), 1.0);
+   if(!hasTexture){
+      FragColor = color * vec4(lighting(), 1.0);
+   }else{
+      FragColor = texture(texture0, texCoord) * color * vec4(lighting() * 1.2, 1.0);
+   }
 }
