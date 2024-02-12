@@ -30,7 +30,7 @@ const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 1024;
 const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
 
-Camera camera(glm::vec3(1.55f, 3.4f, 1.3f));
+Camera camera(glm::vec3(0.3f, 2.3f, -2.5f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -49,6 +49,7 @@ int main(){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 16);
 
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Computergrafik Projekt", NULL, NULL);
     if (window == NULL)
@@ -63,6 +64,7 @@ int main(){
     glfwSetScrollCallback(window, scroll_callback);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -71,7 +73,7 @@ int main(){
     }
 
     glEnable(GL_DEPTH_TEST);
-
+    glEnable(GL_MULTISAMPLE);
 
 
 
@@ -82,8 +84,6 @@ int main(){
          0.5f,  0.5f, 0.0f,     1.0f, 1.0f, // top right
         -0.5f,  0.5f, 0.0f,     0.0f, 1.0f  // top left 
     };
-
-
 
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
@@ -146,7 +146,7 @@ int main(){
     glm::vec3 directionVector(1.0f, 0.0f, 0.0f);
     startMatrix = glm::scale(startMatrix, glm::vec3(0.01f));
 
-    startMatrix = glm::translate(startMatrix, glm::vec3(172.0f, 86.5f, 197.0f));
+    startMatrix = glm::translate(startMatrix, glm::vec3(172.0f, 87.0f, 197.0f));
     pieces.push_back(Piece(&hatModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
 
     startMatrix = glm::translate(startMatrix, glm::vec3(1.0f, 0.0f, -4.0f));
@@ -155,7 +155,7 @@ int main(){
     startMatrix = glm::translate(startMatrix, glm::vec3(4.0f, 0.0f, 1.0f));
     pieces.push_back(Piece(&thimbleModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
 
-    startMatrix = glm::translate(startMatrix, glm::vec3(-1.0f, 0.0f, 4.0f));
+    startMatrix = glm::translate(startMatrix, glm::vec3(-1.0f, -1.0f, 4.0f));
     pieces.push_back(Piece(&shipModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
     pieces.push_back(Piece(&houseSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
     pieces.push_back(Piece(&hotelSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
@@ -187,7 +187,7 @@ int main(){
         renderShadowMap(depthShader, depthMapFBO, model, monopoly, lights[0]);
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        
+        /*
         debugShader.use();
         debugShader.setFloat("near_plane", near_plane);
         debugShader.setFloat("far_plane", far_plane);
@@ -196,7 +196,7 @@ int main(){
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glBindTexture(GL_TEXTURE_2D, 0);
-        
+        */
        
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::mat4 lightProjection =  glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.1f, 20.0f);
@@ -223,6 +223,8 @@ int main(){
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
         modelShader.setMat4("lightSpaceMatrix2", lightSpaceMatrix2);
         modelShader.setFloat("bias", 0.0003);
+
+       // glEnable(GL_FRAMEBUFFER_SRGB); 
 
         modelShader.setInt("hasTexture", false);
         model.draw(modelShader);
