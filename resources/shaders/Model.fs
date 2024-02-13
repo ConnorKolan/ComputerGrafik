@@ -5,17 +5,14 @@ in vec2 texCoord;
 in vec3 normal;
 in vec3 fragPos;
 in vec4 fragPosLightSpace;
-in vec4 fragPosLightSpace2;
 
 uniform vec3 viewPos;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
-uniform vec3 lightPos2;
 uniform vec4 color;
 uniform bool hasTexture;
 
 uniform sampler2D shadowMap;
-uniform sampler2D shadowMap2;
 
 uniform sampler2D texture0;
 uniform float bias;

@@ -27,8 +27,8 @@ void createTexture(unsigned int& depthMap);
 void renderShadowMap(Shader& depthShader, unsigned int& depthMapFBO, Model& model, Model& monopoly, Light& light);
 unsigned int loadCubemap(std::vector<std::string> faces);
 
-const unsigned int SCR_WIDTH = 1024;
-const unsigned int SCR_HEIGHT = 1024;
+const unsigned int SCR_WIDTH = 1920;
+const unsigned int SCR_HEIGHT = 1080;
 const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
 
 Camera camera(glm::vec3(5.55f, 7.5f, 5.3f));
@@ -283,7 +283,6 @@ int main(){
 
         modelShader.use();
         modelShader.setInt("shadowMap", 1);
-        modelShader.setInt("shadowMap2", 2);
         modelShader.setVec3("lightColor", lights[0].color);
         modelShader.setVec3("lightPos", lights[0].position);
         modelShader.setVec3("viewPos", camera.Position);
@@ -291,7 +290,6 @@ int main(){
         modelShader.setMat4("view",  camera.GetViewMatrix());
         modelShader.setMat4("model", modelMatrix);
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-        modelShader.setMat4("lightSpaceMatrix2", lightSpaceMatrix2);
         modelShader.setFloat("bias", 0.0003);
 
         glEnable(GL_FRAMEBUFFER_SRGB); 
@@ -307,18 +305,18 @@ int main(){
             pieces[i].draw(modelShader);
         }
 
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+        glDepthFunc(GL_LEQUAL); 
         skyboxShader.use();
-        glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+        glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
         skyboxShader.setMat4("view", view);
         skyboxShader.setMat4("projection", projection);
-        // skybox cube
+        
         glBindVertexArray(skyboxVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
-        glDepthFunc(GL_LESS); // set depth function back to default
+        glDepthFunc(GL_LESS); 
 
         glfwSwapBuffers(window);
         glfwPollEvents();
