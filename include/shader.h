@@ -30,9 +30,7 @@ class Shader{
         vertexFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fragmentFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         
-        try
-        {
-
+        try{
             vertexFile.open(vertexShaderPath);
             fragmentFile.open(fragmentShaderPath);
 
@@ -45,20 +43,15 @@ class Shader{
             vertexCode = vertexStream.str();
             fragmentCode = fragmentStream.str();
 
-
             vertexFile.close();
             fragmentFile.close();
-
         }
-        catch(const std::exception& e)
-        {
+        catch(const std::exception& e){
             std::cerr << "Error reading file: " << e.what() << std::endl;
         }
 
         const char* vCode = vertexCode.c_str();
         const char* fCode = fragmentCode.c_str();
-
-        
 
         unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertexShader, 1, &vCode, NULL);
@@ -76,11 +69,8 @@ class Shader{
         glLinkProgram(this->ID);
         checkCompileErrors(this->ID, "PROGRAM");
 
-
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
-        
-
     }
 
     void use(){
@@ -112,8 +102,7 @@ class Shader{
     }
 
 private:
-    void checkCompileErrors(GLuint shader, std::string type)
-    {
+    void checkCompileErrors(GLuint shader, std::string type){
         GLint success;
         GLchar infoLog[1024];
         if(type != "PROGRAM")

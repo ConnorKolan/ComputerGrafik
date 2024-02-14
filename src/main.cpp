@@ -18,9 +18,9 @@
 #include <iostream>
 
 glm::vec3 rotateVector(const glm::vec3& vec, float angleDegrees, const glm::vec3& axis);
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void snapCamera2Piece();
 void createTexture(unsigned int& depthMap);
@@ -29,9 +29,10 @@ unsigned int loadCubemap(std::vector<std::string> faces);
 
 const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
-const unsigned int SHADOW_WIDTH = 16384, SHADOW_HEIGHT = 16384;
+const unsigned int SHADOW_WIDTH = 16384;
+const unsigned int SHADOW_HEIGHT = 16384;
 
-Camera camera(glm::vec3(5.55f, 7.5f, 5.3f));
+Camera camera(glm::vec3(3.55f, 4.5f, 5.3f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -46,10 +47,14 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 int main(){
+
+    //-------------------------------- GLFW setup --------------------------------------
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    //samples for anti aliassing
     glfwWindowHint(GLFW_SAMPLES, 16);
 
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Computergrafik Projekt", NULL, NULL);
@@ -59,10 +64,11 @@ int main(){
         glfwTerminate();
         return -1;
     }
+
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+    glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     
@@ -74,9 +80,10 @@ int main(){
     }
 
     glEnable(GL_DEPTH_TEST);
+    //enable anti aliasing
     glEnable(GL_MULTISAMPLE);
 
-
+    //-------------------------------- Square for debugging --------------------------------------
 
     float vertices[] = {
         // positions            // texture coords
@@ -86,12 +93,12 @@ int main(){
         -0.5f,  0.5f, 0.0f,     0.0f, 1.0f  // top left 
     };
 
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
+    unsigned int vbo, vao;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glBindVertexArray(vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -103,67 +110,7 @@ int main(){
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glBindVertexArray(0); 
 
-
-
-    unsigned int depthMapFBO;
-    glGenFramebuffers(1, &depthMapFBO);
-    // create depth texture
-    unsigned int depthMap, depthMap2;
-
-    createTexture(depthMap);
-    createTexture(depthMap2);
-
-    // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
-        std::cout << "Frambuffer incomplete" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    //-------------------------------- Load models --------------------------------------
-
-    Shader modelShader("../resources/shaders/Model.vs", "../resources/shaders/Model.fs");
-    Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
-    Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
-    Shader skyboxShader("../resources/shaders/skybox.vs", "../resources/shaders/skybox.fs");
-
-    Model model("../resources/objects/Monopoly/szene.obj");
-    Model monopoly("../resources/objects/Monopoly/monopoly.obj");
-    
-    Model hatModel("../resources/objects/Modelle/Zylinder.obj");
-    Model cartModel("../resources/objects/Modelle/Schubkarre.obj");
-    Model thimbleModel("../resources/objects/Modelle/Fingerhut.obj");
-    Model shipModel("../resources/objects/Modelle/Schiff.obj");
-    Model houseSet("../resources/objects/Modelle/haus_set.obj");
-    Model hotelSet("../resources/objects/Modelle/hotel_set.obj");
-
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
-    glm::mat4 startMatrix = glm::mat4(1.0f);
-    glm::vec3 directionVector(1.0f, 0.0f, 0.0f);
-    startMatrix = glm::scale(startMatrix, glm::vec3(0.01f));
-
-    startMatrix = glm::translate(startMatrix, glm::vec3(172.0f, 87.0f, 197.0f));
-    pieces.push_back(Piece(&hatModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
-
-    startMatrix = glm::translate(startMatrix, glm::vec3(1.0f, 0.0f, -4.0f));
-    pieces.push_back(Piece(&cartModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
-
-    startMatrix = glm::translate(startMatrix, glm::vec3(4.0f, 0.0f, 1.0f));
-    pieces.push_back(Piece(&thimbleModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
-
-    startMatrix = glm::translate(startMatrix, glm::vec3(-1.0f, -1.0f, 4.0f));
-    pieces.push_back(Piece(&shipModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
-    pieces.push_back(Piece(&houseSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
-    pieces.push_back(Piece(&hotelSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
-
-
-
+    //-------------------------------- Skybox coords plus vbo --------------------------------------
     float skyboxVertices[] = {
         // positions          
         -1.0f,  1.0f, -1.0f,
@@ -209,15 +156,69 @@ int main(){
          1.0f, -1.0f,  1.0f
     };
 
-    unsigned int skyboxVAO, skyboxVBO;
-    glGenVertexArrays(1, &skyboxVAO);
-    glGenBuffers(1, &skyboxVBO);
-    glBindVertexArray(skyboxVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    unsigned int skyboxVao, skyboxVbo;
+    glGenVertexArrays(1, &skyboxVao);
+    glGenBuffers(1, &skyboxVbo);
+    glBindVertexArray(skyboxVao);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
+    //--------------------------------Create Framebuffer with Depth buffer for Shadow mapping --------------------------------------
+    unsigned int depthMapFbo;
+    glGenFramebuffers(1, &depthMapFbo);
+    unsigned int depthMap;
+
+    createTexture(depthMap);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+        std::cout << "Frambuffer incomplete" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //-------------------------------- Load models --------------------------------------
+
+    Shader modelShader("../resources/shaders/Model.vs", "../resources/shaders/Model.fs");
+    Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
+    Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
+    Shader skyboxShader("../resources/shaders/skybox.vs", "../resources/shaders/skybox.fs");
+
+    Model model("../resources/objects/Monopoly/szene.obj");
+    Model monopoly("../resources/objects/Monopoly/monopoly.obj");
+    
+    Model hatModel("../resources/objects/Modelle/Zylinder.obj");
+    Model cartModel("../resources/objects/Modelle/Schubkarre.obj");
+    Model thimbleModel("../resources/objects/Modelle/Fingerhut.obj");
+    Model shipModel("../resources/objects/Modelle/Schiff.obj");
+    Model houseSet("../resources/objects/Modelle/haus_set.obj");
+    Model hotelSet("../resources/objects/Modelle/hotel_set.obj");
+
+    //-------------------------------- Transform models to correct position --------------------------------------
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
+    glm::mat4 startMatrix = glm::mat4(1.0f);
+    glm::vec3 directionVector(1.0f, 0.0f, 0.0f);
+    startMatrix = glm::scale(startMatrix, glm::vec3(0.01f));
+
+    startMatrix = glm::translate(startMatrix, glm::vec3(172.0f, 87.0f, 197.0f));
+    pieces.push_back(Piece(&hatModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
+
+    startMatrix = glm::translate(startMatrix, glm::vec3(1.0f, 0.0f, -4.0f));
+    pieces.push_back(Piece(&cartModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
+
+    startMatrix = glm::translate(startMatrix, glm::vec3(4.0f, 0.0f, 1.0f));
+    pieces.push_back(Piece(&thimbleModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
+
+    startMatrix = glm::translate(startMatrix, glm::vec3(-1.0f, -1.0f, 4.0f));
+    pieces.push_back(Piece(&shipModel, startMatrix, camera.GetViewMatrix(), projection, directionVector));
+    pieces.push_back(Piece(&houseSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
+    pieces.push_back(Piece(&hotelSet, glm::mat4(1.0f), camera.GetViewMatrix(), projection, directionVector));
 
     std::vector<std::string> faces{
         "../resources/objects/Skybox/Right.bmp",
@@ -239,8 +240,7 @@ int main(){
     float far_plane = 20.0f;
 
     // -----------
-    while (!glfwWindowShouldClose(window))
-    {
+    while (!glfwWindowShouldClose(window)){
 
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
@@ -248,14 +248,14 @@ int main(){
 
         processInput(window);
 
-
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
+        
+        //-------------------------------- First Pass --------------------------------------
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        renderShadowMap(depthShader, depthMapFBO, model, monopoly, lights[0]);
+        renderShadowMap(depthShader, depthMapFbo, model, monopoly, lights[0]);
         glBindTexture(GL_TEXTURE_2D, 0);
+        //-------------------------------- Second pass --------------------------------------
 
         /*
         debugShader.use();
@@ -271,7 +271,6 @@ int main(){
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::mat4 lightProjection =  glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.1f, 20.0f);
         glm::mat4 lightSpaceMatrix = lightProjection * lights[0].camera.GetViewMatrix();
-        glm::mat4 lightSpaceMatrix2 = lightProjection * lights[1].camera.GetViewMatrix();
         projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.01f, 20.0f);
 
 
@@ -279,10 +278,8 @@ int main(){
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
 
-        modelMatrix = glm::mat4(1.0f);
-
         modelShader.use();
-        modelShader.setInt("shadowMap", 1);
+        modelShader.setInt("shadowMap", depthMap);
         modelShader.setVec3("lightColor", lights[0].color);
         modelShader.setVec3("lightPos", lights[0].position);
         modelShader.setVec3("viewPos", camera.Position);
@@ -292,6 +289,7 @@ int main(){
         modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
         modelShader.setFloat("bias", 0.0003);
 
+        //enable Gamma Correction
         glEnable(GL_FRAMEBUFFER_SRGB); 
 
         modelShader.setInt("hasTexture", false);
@@ -311,7 +309,7 @@ int main(){
         skyboxShader.setMat4("view", view);
         skyboxShader.setMat4("projection", projection);
         
-        glBindVertexArray(skyboxVAO);
+        glBindVertexArray(skyboxVao);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -334,8 +332,6 @@ void renderShadowMap(Shader& depthShader, unsigned int& depthMapFBO, Model& mode
     glm::mat4 lightSpaceMatrix = lightProjection * light.camera.GetViewMatrix();
 
     depthShader.use();
-
-
     depthShader.setMat4("model", modelMatrix);
     depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
     
@@ -440,13 +436,11 @@ void processInput(GLFWwindow *window){
     }
 }
 
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
+void framebufferSizeCallback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
 
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn){
+void mouseCallback(GLFWwindow* window, double xposIn, double yposIn){
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -476,7 +470,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn){
     }
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
