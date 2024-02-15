@@ -187,7 +187,7 @@ int main(){
 
     Shader modelShader("../resources/shaders/Model.vs", "../resources/shaders/Model.fs");
     Shader depthShader("../resources/shaders/depthMap.vs", "../resources/shaders/depthMap.fs");
-    Shader debugShader("../resources/shaders/fingerhut.vs", "../resources/shaders/fingerhut.fs");
+    Shader debugShader("../resources/shaders/Debug.vs", "../resources/shaders/Debug.fs");
     Shader skyboxShader("../resources/shaders/skybox.vs", "../resources/shaders/skybox.fs");
 
     Model model("../resources/objects/Monopoly/szene.obj");
@@ -257,16 +257,16 @@ int main(){
         glBindTexture(GL_TEXTURE_2D, 0);
         //-------------------------------- Second pass --------------------------------------
 
-        /*
+        
         debugShader.use();
         debugShader.setFloat("near_plane", near_plane);
         debugShader.setFloat("far_plane", far_plane);
-        glBindVertexArray(VAO);
+        glBindVertexArray(vao);
         glDisable(GL_DEPTH_TEST);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glBindTexture(GL_TEXTURE_2D, 0);
-        */
+        
        
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::mat4 lightProjection =  glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.1f, 20.0f);
